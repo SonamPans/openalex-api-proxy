@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <style>
+            kbd {margin-left: 3em;}
+            div.key {margin-left: 3em;}
+            p.sig {font-size: small; }
+        </style>
+        <title>Your OpenAlex API Key</title>
+    </head>
+    <body>
+        <p>Your new OpenAlex API key is here!</p>
+        <div class="key">
+            <p>Email: {{email}}</p>
+            <p>Key: <code>{{key}}</code></p>
+        </div>
+        <p>You can now call the OpenAlex REST API by passing your key as a query parameter:</p>
+        <kbd>
+            https://api.openalex.org/query?filter=issn:2167-8359,license:cc-by&groupby=year&api_key={{key}}
+        </kbd>
+        <p>or by passing it in the header <var>OpenAlex-API-Key</var>:</p>
+        <kbd>
+            $ curl -H 'OpenAlex-API-Key: {{key}}' 'https://api.openalex.org/query?filter=issn:2167-8359,license:cc-by&groupby=year'
+        </kbd>
+        <p>
+            Check out the full documentation at <a href="https://openalex.org/rest-api">https://openalex.org/rest-api</a>
+            and <a href="http://eepurl.com/hA8PhL">join our mailing list</a> for updates.
+        </p>
+        <p>Thanks,</p>
+        <p>Heather and Jason @ OpenAlex</p>
+        <p class="sig">
+            OpenAlex is made with ❤︎ by <a href="https://ourresearch.org/">OurResearch</a>,<br>
+            with generous support from<br>
+            <a href="https://www.arcadiafund.org.uk/">Arcadia — a charitable fund of Lisbet Rausing and Peter Baldwin.</a>
+        </p>
+    </body>
+</html>
