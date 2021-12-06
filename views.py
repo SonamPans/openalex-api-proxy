@@ -31,7 +31,7 @@ def api_key_required(route):
     @wraps(route)
     def _api_key_required(*args, **kwargs):
         if not request_api_key():
-            abort_json(422, 'OpenAlex API key required')
+            abort_json(422, 'OpenAlex API key required. Please register a key at https://openalex.org/rest-api/register')
         return route(*args, **kwargs)
     return _api_key_required
 
@@ -75,6 +75,9 @@ def register_key():
     if not request_email:
         abort_json(400, 'POST a JSON object with the email address to register, like {"email": "user@example.com"}')
 
+    if existing_key := APIKey.query.filter(APIKey.email == request_email).scalar():
+        abort_json(400, duplicate_email_message(existing_key))
+
     api_key = APIKey(email=request_email)
     try:
         db.session.add(api_key)
@@ -90,11 +93,21 @@ def register_key():
         )
         send(welcome_email, for_real=True)
     except Exception as e:
-        error_code = shortuuid.uuid()
-        logger.exception(f'error {error_code} saving API key: {api_key.to_dict()}\n{e}')
-        abort_json(500, {'error_code': error_code})
+        incident_key = shortuuid.uuid()
+        logger.exception(f'error {incident_key} saving API key: {api_key.to_dict()}\n{e}')
+
+        if f'Key (email)=({api_key.email}) already exists' in str(e):
+            abort_json(400, duplicate_email_message(api_key))
+
+        abort_json(500, {'error_code': incident_key, 'exception': str(e)})
 
     return jsonify(api_key.to_dict())
+
+
+def duplicate_email_message(api_key):
+    return f"Sorry, an API key has already been registered for {api_key.email}. \
+Please check your inbox for a key sent on {api_key.created.date()}. \
+If you believe this is a mistake, let us know at team@ourresearch.org and we'll sort it out!"
 
 
 if __name__ == '__main__':

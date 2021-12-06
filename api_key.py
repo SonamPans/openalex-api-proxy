@@ -8,7 +8,7 @@ from app import db
 
 class APIKey(db.Model):
     id = db.Column(db.BigInteger, Sequence('api_keys_id_seq', start=1, increment=1), primary_key=True)
-    email = db.Column(db.Text, nullable=False)
+    email = db.Column(db.Text, nullable=False, unique=True)
     key = db.Column(db.Text, nullable=False)
     created = db.Column(db.DateTime, nullable=False)
     active = db.Column(db.Boolean, nullable=False)
