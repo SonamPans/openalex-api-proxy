@@ -40,7 +40,7 @@ def request_api_key():
     request_key = request.args.get('api_key') or request.headers.get('OpenAlex-API-Key')
 
     if request_key:
-        return APIKey.query.filter(APIKey.key == request_key).scalar()
+        return APIKey.query.filter(APIKey.key == request_key, APIKey.active == True).scalar()
     else:
         return None
 
