@@ -4,6 +4,7 @@ import sys
 import warnings
 from urllib.parse import urlparse
 
+import bmemcached
 import limits.errors
 import limits.util
 import redis
@@ -88,3 +89,8 @@ def redis_init(self, uri: str, **options):
 
 RedisStorage.__init__ = redis_init
 
+memcached_servers = os.environ.get('MEMCACHIER_SERVERS', '').split(',')
+memcached_user = os.environ.get('MEMCACHIER_USERNAME', '')
+memcached_password = os.environ.get('MEMCACHIER_PASSWORD', '')
+
+memcached = bmemcached.Client(memcached_servers, username=memcached_user, password=memcached_password)

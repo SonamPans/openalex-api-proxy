@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 import json
 import os
 from functools import wraps
@@ -12,6 +13,7 @@ from werkzeug.exceptions import BadRequest
 from api_key import APIKey
 from app import app, db
 from app import logger
+from app import memcached
 from emailer import create_email, send
 
 
@@ -87,14 +89,35 @@ limiter = Limiter(app, key_func=remote_address)
 @api_key_required
 @limiter.limit(limit_value=proxy_rate_limit, key_func=proxy_rate_key)
 def forward_request(request_path):
-    return jsonify({
+    cache_key = hashlib.sha256(
+        json.dumps(
+            {
+                'method': request.method,
+                'path': request_path,
+                'args': dict(request.args),
+                'data_json': request.get_json()
+            },
+            sort_keys=True
+        ).encode('utf-8')
+    ).hexdigest()
+
+    if response := memcached.get(cache_key):
+        response['from_cache'] = True
+        return jsonify(response)
+
+    response = {
         'method': request.method,
         'path': request_path,
         'args': request.args,
         'data': str(request.get_data()),
         'headers': dict(request.headers),
-        'api_key': g.api_key.to_dict()
-    })
+        'api_key': g.api_key.to_dict(),
+        'cache_key': cache_key,
+    }
+
+    memcached.set(cache_key, response)
+
+    return jsonify(response)
 
 
 @app.route('/key/register', methods=['POST'])
