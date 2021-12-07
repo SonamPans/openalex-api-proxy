@@ -89,8 +89,8 @@ def redis_init(self, uri: str, **options):
 
 RedisStorage.__init__ = redis_init
 
-memcached_servers = os.environ.get('MEMCACHIER_SERVERS', '').split(',')
-memcached_user = os.environ.get('MEMCACHIER_USERNAME', '')
-memcached_password = os.environ.get('MEMCACHIER_PASSWORD', '')
+memcached_servers = os.environ.get('MEMCACHEDCLOUD_SERVERS').split(',')
+memcached_user = os.environ.get('MEMCACHEDCLOUD_USERNAME')
+memcached_password = os.environ.get('MEMCACHEDCLOUD_PASSWORD')
 
-memcached = bmemcached.Client(memcached_servers, username=memcached_user, password=memcached_password)
+memcached = bmemcached.Client(memcached_servers, memcached_user, memcached_password)

@@ -102,22 +102,20 @@ def forward_request(request_path):
     ).hexdigest()
 
     if response := memcached.get(cache_key):
-        response['from_cache'] = True
         return jsonify(response)
+    else:
+        response = {
+            'method': request.method,
+            'path': request_path,
+            'args': request.args,
+            'data': str(request.get_data()),
+            'headers': dict(request.headers),
+            'api_key': g.api_key.to_dict(),
+            'cache_key': cache_key,
+        }
 
-    response = {
-        'method': request.method,
-        'path': request_path,
-        'args': request.args,
-        'data': str(request.get_data()),
-        'headers': dict(request.headers),
-        'api_key': g.api_key.to_dict(),
-        'cache_key': cache_key,
-    }
-
-    memcached.set(cache_key, response)
-
-    return jsonify(response)
+        memcached.set(cache_key, response)
+        return jsonify(response)
 
 
 @app.route('/key/register', methods=['POST'])
