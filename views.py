@@ -7,7 +7,6 @@ import shortuuid
 from flask import abort, g, jsonify, make_response
 from flask import request
 from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from werkzeug.exceptions import BadRequest
 
 from api_key import APIKey
@@ -64,7 +63,7 @@ def proxy_rate_key():
     api_key = g.get('api_key')
     if api_key and api_key.is_demo:
         #  100 per day per remote address
-        return get_remote_address()
+        return remote_address()
     else:
         # 100,000 per day per key
         return f'{g.api_key.key}'
@@ -74,7 +73,14 @@ def api_rate_limit_key():
     return f'{g.api_key.key}'
 
 
-limiter = Limiter(app, key_func=get_remote_address)
+def remote_address():
+    if forwarded_for := request.headers.getlist('X-Forwarded-For'):
+        return forwarded_for[0]
+    else:
+        return request.remote_addr
+
+
+limiter = Limiter(app, key_func=remote_address)
 
 
 @app.route('/<path:request_path>', methods=['GET', 'POST'])
@@ -94,7 +100,7 @@ def forward_request(request_path):
 
 
 @app.route('/key/register', methods=['POST'])
-@limiter.limit('1/second', key_func=get_remote_address)
+@limiter.limit('1/second', key_func=remote_address)
 def register_key():
     request_email = None
 
