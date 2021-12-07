@@ -1,9 +1,10 @@
+import datetime
 import json
 import os
 from functools import wraps
 
 import shortuuid
-from flask import jsonify, make_response, abort
+from flask import abort, g, jsonify, make_response
 from flask import request
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -30,27 +31,35 @@ def abort_json(status_code, msg):
 def api_key_required(route):
     @wraps(route)
     def _api_key_required(*args, **kwargs):
-        if not request_api_key():
+        request_key = request.args.get('api_key') or request.headers.get('OpenAlex-API-Key')
+
+        if not request_key:
             abort_json(422, 'OpenAlex API key required. Please register a key at https://openalex.org/rest-api/register')
+
+        api_key = APIKey.query.filter(APIKey.key == request_key).scalar()
+
+        if not api_key:
+            abort_json(422, f'Unrecognized API key {request_key}. Please register a key at https://openalex.org/rest-api/register')
+        elif not api_key.active:
+            abort_json(422, f'OpenAlex API key {api_key.key} has been deactivated.')
+        elif api_key.expires and api_key.expires < datetime.datetime.utcnow():
+            abort_json(422, f'OpenAlex API key {api_key.key} expired {api_key.expires.isoformat()}.')
+
+        g.api_key = api_key
         return route(*args, **kwargs)
     return _api_key_required
 
 
-def request_api_key():
-    request_key = request.args.get('api_key') or request.headers.get('OpenAlex-API-Key')
-
-    if request_key:
-        return APIKey.query.filter(APIKey.key == request_key, APIKey.active == True).scalar()
-    else:
-        return None
+def api_rate_limit_key():
+    return f'{g.api_key.key}'
 
 
-limiter = Limiter(app, key_func=request_api_key)
+limiter = Limiter(app, key_func=get_remote_address)
 
 
 @app.route('/<path:request_path>', methods=['GET', 'POST'])
 @api_key_required
-@limiter.limit('100000/day')
+@limiter.limit('100000/day', key_func=api_rate_limit_key)
 def forward_request(request_path):
     return jsonify({
         'method': request.method,
@@ -58,12 +67,12 @@ def forward_request(request_path):
         'args': request.args,
         'data': str(request.get_data()),
         'headers': dict(request.headers),
-        'api_key': request_api_key().to_dict()
+        'api_key': g.api_key.to_dict()
     })
 
 
 @app.route('/key/register', methods=['POST'])
-@limiter.limit('1/second', key_func=get_remote_address, )
+@limiter.limit('1/second', key_func=get_remote_address)
 def register_key():
     request_email = None
 
