@@ -50,7 +50,7 @@ limiter = Limiter(app, key_func=request_api_key)
 
 @app.route('/<path:request_path>', methods=['GET', 'POST'])
 @api_key_required
-@limiter.limit('100000/day;20/second')
+@limiter.limit('100000/day')
 def forward_request(request_path):
     return jsonify({
         'method': request.method,
