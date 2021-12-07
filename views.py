@@ -89,6 +89,17 @@ limiter = Limiter(app, key_func=remote_address)
 @api_key_required
 @limiter.limit(limit_value=proxy_rate_limit, key_func=proxy_rate_key)
 def forward_request(request_path):
+    logger.info(json.dumps(
+        {
+            'grep_sentinel': 'dw9vwocmxd',
+            'api_key': g.api_key.key,
+            'method': request.method,
+            'path': request_path,
+            'args': dict(request.args),
+            'data_json': request.get_json()
+        }
+    ))
+
     cache_key = hashlib.sha256(
         json.dumps(
             {
