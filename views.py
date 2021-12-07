@@ -9,6 +9,7 @@ from flask import abort, g, jsonify, make_response
 from flask import request
 from flask_limiter import Limiter
 from werkzeug.exceptions import BadRequest
+from werkzeug.http import http_date
 
 from api_key import APIKey
 from app import app, db
@@ -80,6 +81,20 @@ def remote_address():
         return forwarded_for[0]
     else:
         return request.remote_addr
+
+
+@app.after_request
+def after_request(response):
+    if response.status_code != 429:
+        del response.headers['Retry-After']
+
+    if rate_limit_reset := response.headers.get('X-RateLimit-Reset'):
+        try:
+            response.headers['X-RateLimit-Reset'] = http_date(int(rate_limit_reset))
+        except ValueError:
+            pass
+
+    return response
 
 
 limiter = Limiter(app, key_func=remote_address)
