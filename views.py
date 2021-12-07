@@ -176,6 +176,15 @@ def register_key():
     return jsonify(api_key.to_dict())
 
 
+@app.route('/', methods=["GET", "POST"])
+def base_endpoint():
+    return jsonify({
+        "version": "0.0.1",
+        "documentation_url": "https://openalex.org/rest-api",
+        "msg": "Don't panic"
+    })
+
+
 def duplicate_email_message(api_key):
     return f"Sorry, an API key has already been registered for {api_key.email}. \
 Please check your inbox for a key sent on {api_key.created.date()}. \
