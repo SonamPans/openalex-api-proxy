@@ -85,7 +85,7 @@ def remote_address():
 limiter = Limiter(app, key_func=remote_address)
 
 
-@app.route('/<path:request_path>', methods=['GET', 'POST'])
+@app.route('/<path:request_path>', methods=['GET'])
 @api_key_required
 @limiter.limit(limit_value=proxy_rate_limit, key_func=proxy_rate_key)
 def forward_request(request_path):
@@ -93,20 +93,16 @@ def forward_request(request_path):
         {
             'grep_sentinel': 'dw9vwocmxd',
             'api_key': g.api_key.key,
-            'method': request.method,
             'path': request_path,
             'args': dict(request.args),
-            'data_json': request.get_json()
         }
     ))
 
     cache_key = hashlib.sha256(
         json.dumps(
             {
-                'method': request.method,
                 'path': request_path,
                 'args': dict(request.args),
-                'data_json': request.get_json()
             },
             sort_keys=True
         ).encode('utf-8')
@@ -116,10 +112,8 @@ def forward_request(request_path):
         return jsonify(response)
     else:
         response = {
-            'method': request.method,
             'path': request_path,
             'args': request.args,
-            'data': str(request.get_data()),
             'headers': dict(request.headers),
             'api_key': g.api_key.to_dict(),
             'cache_key': cache_key,
