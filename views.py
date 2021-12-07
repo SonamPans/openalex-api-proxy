@@ -87,7 +87,9 @@ def forward_request(request_path):
         'args': request.args,
         'data': str(request.get_data()),
         'headers': dict(request.headers),
-        'api_key': g.api_key.to_dict()
+        'api_key': g.api_key.to_dict(),
+        'rate_limit': proxy_rate_limit(),
+        'rate_key': proxy_rate_key(),
     })
 
 
