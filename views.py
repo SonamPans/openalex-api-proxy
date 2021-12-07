@@ -50,6 +50,26 @@ def api_key_required(route):
     return _api_key_required
 
 
+def proxy_rate_limit():
+    api_key = g.get('api_key')
+    if api_key and api_key.is_demo:
+        #  100 per day per remote address
+        return '100/day'
+    else:
+        # 100,000 per day per key
+        return '100000/day'
+
+
+def proxy_rate_key():
+    api_key = g.get('api_key')
+    if api_key and api_key.is_demo:
+        #  100 per day per remote address
+        return get_remote_address()
+    else:
+        # 100,000 per day per key
+        return f'{g.api_key.key}'
+
+
 def api_rate_limit_key():
     return f'{g.api_key.key}'
 
@@ -59,7 +79,7 @@ limiter = Limiter(app, key_func=get_remote_address)
 
 @app.route('/<path:request_path>', methods=['GET', 'POST'])
 @api_key_required
-@limiter.limit('100000/day', key_func=api_rate_limit_key)
+@limiter.limit(limit_value=proxy_rate_limit, key_func=proxy_rate_key)
 def forward_request(request_path):
     return jsonify({
         'method': request.method,

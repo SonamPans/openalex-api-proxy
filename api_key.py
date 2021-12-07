@@ -4,7 +4,6 @@ import shortuuid
 from sqlalchemy import Sequence
 
 from app import db
-import datetime
 
 
 class APIKey(db.Model):
@@ -14,6 +13,7 @@ class APIKey(db.Model):
     created = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     active = db.Column(db.Boolean, nullable=False, default=True)
     expires = db.Column(db.DateTime)
+    is_demo = db.Column(db.Boolean)
 
     def to_dict(self, show_key=False):
         return {
@@ -21,7 +21,8 @@ class APIKey(db.Model):
             'key': self.key if show_key else '*'*len(self.key),
             'created': self.created,
             'active': self.active,
-            'expires': self.expires and self.expires.isoformat()
+            'expires': self.expires and self.expires.isoformat(),
+            'is_demo': self.is_demo,
         }
 
     def __init__(self, **kwargs):
