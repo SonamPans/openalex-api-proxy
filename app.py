@@ -42,6 +42,9 @@ app.config['RATELIMIT_HEADER_RETRY_AFTER_VALUE'] = 'http-date'
 app.config['RATELIMIT_IN_MEMORY_FALLBACK_ENABLED'] = True
 app.config['RATELIMIT_IN_MEMORY_FALLBACK'] = '100000/day'
 
+slice_and_dice_api = os.getenv('SLICE_AND_DICE_API_URL')
+entity_api = os.getenv('ENTITY_API_URL')
+
 
 class NullPoolSQLAlchemy(SQLAlchemy):
     def apply_driver_hacks(self, flask_app, info, options):
@@ -52,7 +55,6 @@ class NullPoolSQLAlchemy(SQLAlchemy):
 db = NullPoolSQLAlchemy(app, session_options={"autoflush": False})
 
 Compress(app)
-
 
 def redis_init(self, uri: str, **options):
     """

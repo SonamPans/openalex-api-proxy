@@ -14,6 +14,7 @@ from werkzeug.http import http_date
 
 from api_key import APIKey
 from app import app, db
+from app import entity_api, slice_and_dice_api
 from app import logger
 from app import memcached
 from emailer import create_email, send
@@ -112,11 +113,9 @@ limiter = Limiter(app, key_func=remote_address)
 
 def select_worker_host(request_path):
     if '/' in request_path[:-1]:
-        # entity endpoints
-        return 'https://openalex-guts.herokuapp.com'
+        return entity_api
     else:
-        # slice-and-dice endpoints
-        return 'https://openalex-test-api.herokuapp.com'
+        return slice_and_dice_api
 
 
 @app.route('/<path:request_path>', methods=['GET'])
