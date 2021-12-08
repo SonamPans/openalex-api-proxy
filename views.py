@@ -36,12 +36,12 @@ def api_key_required(route):
         request_key = request.args.get('api_key') or request.headers.get('OpenAlex-API-Key')
 
         if not request_key:
-            abort_json(422, 'OpenAlex API key required. Please register a key at https://openalex.org/rest-api/register')
+            abort_json(422, 'OpenAlex API key required. Please register a key at https://openalex.org/rest-api')
 
         api_key = APIKey.query.filter(APIKey.key == request_key).scalar()
 
         if not api_key:
-            abort_json(422, f'Unrecognized API key {request_key}. Please register a key at https://openalex.org/rest-api/register')
+            abort_json(422, f'Unrecognized API key {request_key}. Please register a key at https://openalex.org/rest-api')
         elif not api_key.active:
             abort_json(422, f'OpenAlex API key {api_key.key} has been deactivated.')
         elif api_key.expires and api_key.expires < datetime.datetime.utcnow():
@@ -53,8 +53,7 @@ def api_key_required(route):
 
 
 def proxy_rate_limit():
-    api_key = g.get('api_key')
-    if api_key and api_key.is_demo:
+    if (api_key := g.get('api_key')) and api_key.is_demo:
         #  100 per day per remote address
         return '100/day'
     else:
@@ -81,6 +80,16 @@ def remote_address():
         return forwarded_for[0]
     else:
         return request.remote_addr
+
+
+@app.errorhandler(429)
+def rate_limit_handler(e):
+    if (api_key := g.get('api_key')) and api_key.is_demo:
+        msg = f'This is a demo API key for use in documentation, please register your own at https://openalex.org/rest-api'
+    else:
+        msg = f'Too many requests, exceeded {e.description}'
+
+    return make_response(json.dumps({'error': msg}), 429)
 
 
 @app.after_request
