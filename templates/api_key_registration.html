@@ -17,11 +17,11 @@
         </div>
         <p>You can now call the OpenAlex REST API by passing your key as a query parameter:</p>
         <kbd>
-            https://api.openalex.org/query?filter=issn:2167-8359,license:cc-by&groupby=year&api_key={{key}}
+            https://api.openalex.org/works?api_key={{key}}
         </kbd>
         <p>or by passing it in the header <var>OpenAlex-API-Key</var>:</p>
         <kbd>
-            $ curl -H 'OpenAlex-API-Key: {{key}}' 'https://api.openalex.org/query?filter=issn:2167-8359,license:cc-by&groupby=year'
+            $ curl -H 'OpenAlex-API-Key: {{key}}' 'https://api.openalex.org/works'
         </kbd>
         <p>
             Check out the full documentation at <a href="https://openalex.org/rest-api">https://openalex.org/rest-api</a>
