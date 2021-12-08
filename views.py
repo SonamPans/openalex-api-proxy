@@ -163,6 +163,8 @@ def forward_request(request_path):
             'path': request_path,
             'args': dict(request.args),
             'response_source': response_source,
+            'cache_key': cache_key,
+            'response_status_code': response_attrs['status_code'],
         }
     ))
 
