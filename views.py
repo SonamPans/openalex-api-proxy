@@ -95,7 +95,7 @@ def rate_limit_handler(e):
 
 @app.after_request
 def after_request(response):
-    if response.status_code != 429:
+    if response.status_code != 429 and 'Retry-After' in response.headers:
         del response.headers['Retry-After']
 
     if rate_limit_reset := response.headers.get('X-RateLimit-Reset'):
@@ -126,7 +126,8 @@ def forward_request(request_path):
     worker_host = select_worker_host(request_path)
     worker_url = f'{worker_host}/{request_path}'
     worker_params = dict(request.args)
-    del worker_params['api_key']
+    if 'api_key' in worker_params:
+        del worker_params['api_key']
 
     cache_key = hashlib.sha256(
         json.dumps({'url': worker_url, 'args': worker_params}, sort_keys=True).encode('utf-8')
