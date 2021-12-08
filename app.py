@@ -39,6 +39,8 @@ app.config['RATELIMIT_HEADERS_ENABLED'] = os.getenv('RATELIMIT_HEADERS_ENABLED')
 app.config['RATELIMIT_STORAGE_URL'] = os.getenv('REDIS_URL')
 app.config['SQLALCHEMY_ECHO'] = (os.getenv('SQLALCHEMY_ECHO', False) == 'True')
 app.config['RATELIMIT_HEADER_RETRY_AFTER_VALUE'] = 'http-date'
+app.config['RATELIMIT_IN_MEMORY_FALLBACK_ENABLED'] = True
+app.config['RATELIMIT_IN_MEMORY_FALLBACK'] = '100000/day'
 
 
 class NullPoolSQLAlchemy(SQLAlchemy):
