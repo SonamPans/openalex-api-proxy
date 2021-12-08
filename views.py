@@ -4,6 +4,7 @@ import json
 import os
 from functools import wraps
 
+import requests
 import shortuuid
 from flask import abort, g, jsonify, make_response
 from flask import request
@@ -109,42 +110,68 @@ def after_request(response):
 limiter = Limiter(app, key_func=remote_address)
 
 
+def select_worker_host(request_path):
+    if '/' in request_path[:-1]:
+        # entity endpoints
+        return 'https://openalex-guts.herokuapp.com'
+    else:
+        # slice-and-dice endpoints
+        return 'https://openalex-test-api.herokuapp.com'
+
+
 @app.route('/<path:request_path>', methods=['GET'])
 @api_key_required
 @limiter.limit(limit_value=proxy_rate_limit, key_func=proxy_rate_key)
 def forward_request(request_path):
+    worker_host = select_worker_host(request_path)
+    worker_url = f'{worker_host}/{request_path}'
+    worker_params = dict(request.args)
+    del worker_params['api_key']
+
+    cache_key = hashlib.sha256(
+        json.dumps({'url': worker_url, 'args': worker_params}, sort_keys=True).encode('utf-8')
+    ).hexdigest()
+
+    response_source = 'cache'
+
+    if not (response_attrs := memcached.get(cache_key)):
+        try:
+            worker_response = requests.get(worker_url, params=worker_params)
+            response_source = worker_response.url
+
+            response_attrs = {
+                'status_code': worker_response.status_code,
+                'content': worker_response.content,
+                'headers': dict(worker_response.headers),
+            }
+
+            if worker_response.status_code < 500:
+                memcached.set(cache_key, response_attrs)
+
+        except requests.exceptions.RequestException:
+            response_attrs = {
+                'status_code': 500,
+                'content': 'There was an error processing your request. Please try again.',
+                'headers': {}
+            }
+
     logger.info(json.dumps(
         {
             'grep_sentinel': 'dw9vwocmxd',
             'api_key': g.api_key.key,
             'path': request_path,
             'args': dict(request.args),
+            'response_source': response_source,
         }
     ))
 
-    cache_key = hashlib.sha256(
-        json.dumps(
-            {
-                'path': request_path,
-                'args': dict(request.args),
-            },
-            sort_keys=True
-        ).encode('utf-8')
-    ).hexdigest()
+    response = make_response(response_attrs['content'], response_attrs['status_code'])
 
-    if response := memcached.get(cache_key):
-        return jsonify(response)
-    else:
-        response = {
-            'path': request_path,
-            'args': request.args,
-            'headers': dict(request.headers),
-            'api_key': g.api_key.to_dict(),
-            'cache_key': cache_key,
-        }
+    for k, v in response_attrs['headers'].items():
+        if k == 'Content-Type' or k.startswith('Access-Control-'):
+            response.headers[k] = v
 
-        memcached.set(cache_key, response)
-        return jsonify(response)
+    return response
 
 
 @app.route('/key/register', methods=['POST'])
