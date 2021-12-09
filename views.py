@@ -91,7 +91,7 @@ def rate_limit_handler(e):
     else:
         msg = f'Too many requests, exceeded {e.description}'
 
-    return make_response(json.dumps({'error': msg}), 429)
+    return make_response(jsonify({'error': msg}), 429)
 
 
 @app.after_request
