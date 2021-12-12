@@ -127,7 +127,7 @@ def select_worker_host(request_path):
         return entity_api
 
     # if it's like W123 it's an OpenAlex ID and goes to the entity API
-    elif re.findall("^[wWiIvVaAcC]/d+$", request_path).len:
+    elif len(re.findall("^[wWiIvVaAcC]/d+$", request_path)):
         return entity_api
 
     # slice, dice. goes to elasticsearch
