@@ -105,6 +105,18 @@ def rate_limit_handler(e):
 
 @app.after_request
 def after_request(response):
+
+    # support CORS
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS, PUT, DELETE, PATCH"
+    response.headers["Access-Control-Allow-Headers"] = "Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control"
+    response.headers["Access-Control-Expose-Headers"] = "Authorization, Cache-Control"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+
+    # make not cacheable because the GETs change after parameter change posts!
+    response.cache_control.max_age = 0
+    response.cache_control.no_cache = True
+
     if response.status_code != 429 and 'Retry-After' in response.headers:
         del response.headers['Retry-After']
 
