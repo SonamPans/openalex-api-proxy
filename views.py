@@ -119,7 +119,7 @@ def select_worker_host(request_path):
 
 
 @app.route('/<path:request_path>', methods=['GET'])
-@api_key_required
+# @api_key_required
 @limiter.limit(limit_value=proxy_rate_limit, key_func=proxy_rate_key)
 def forward_request(request_path):
     worker_host = select_worker_host(request_path)
