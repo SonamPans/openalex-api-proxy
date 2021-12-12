@@ -65,8 +65,8 @@ def api_key_required(route):
 
 def proxy_rate_limit():
     if (api_key := g.get('api_key')) and api_key.is_demo:
-        #  1000 per day per remote address
-        return '1000/day'
+        #  for development, infinite uses per IP for demo key
+        return '99999999999/day'
     else:
         # 100,000 per day per key
         return '100000/day'
