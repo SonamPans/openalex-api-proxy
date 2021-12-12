@@ -121,14 +121,12 @@ limiter = Limiter(app, key_func=remote_address)
 
 
 def select_worker_host(request_path):
-    print("request_path", request_path)
-
     # if it's a path, it goes to the entity api
     if '/' in request_path[:-1]:
         return entity_api
 
     # if it's like W123 it's an OpenAlex ID and goes to the entity API
-    elif len(re.findall("^[wWiIvVaAcC]/d+$", request_path)):
+    elif len(re.findall(r"^[wWiIvVaAcC]\d+$", request_path)):
         return entity_api
 
     # slice, dice. goes to elasticsearch
