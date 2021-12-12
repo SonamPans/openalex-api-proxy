@@ -37,6 +37,10 @@ def api_key_required(route):
     def _api_key_required(*args, **kwargs):
         request_key = request.args.get('api_key') or request.headers.get('OpenAlex-API-Key')
 
+        # TEMPORARY FOR DEVELOPMENT
+        # all requests are using the demo key, and users don't actually have to use an api key at all.
+        request_key = "gWt4qXZuXTqUAuvZMJjwRe"
+
         if not request_key:
             abort_json(422, 'OpenAlex API key required. Please register a key at https://openalex.org/rest-api')
 
@@ -50,14 +54,18 @@ def api_key_required(route):
             abort_json(422, f'OpenAlex API key {api_key.key} expired {api_key.expires.isoformat()}.')
 
         g.api_key = api_key
+
+
+
+
         return route(*args, **kwargs)
     return _api_key_required
 
 
 def proxy_rate_limit():
     if (api_key := g.get('api_key')) and api_key.is_demo:
-        #  100 per day per remote address
-        return '100/day'
+        #  1000 per day per remote address
+        return '1000/day'
     else:
         # 100,000 per day per key
         return '100000/day'
@@ -119,7 +127,7 @@ def select_worker_host(request_path):
 
 
 @app.route('/<path:request_path>', methods=['GET'])
-# @api_key_required
+@api_key_required
 @limiter.limit(limit_value=proxy_rate_limit, key_func=proxy_rate_key)
 def forward_request(request_path):
     worker_host = select_worker_host(request_path)
