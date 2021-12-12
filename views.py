@@ -121,6 +121,7 @@ limiter = Limiter(app, key_func=remote_address)
 
 
 def select_worker_host(request_path):
+    print("request_path", request_path)
 
     # if it's a path, it goes to the entity api
     if '/' in request_path[:-1]:
