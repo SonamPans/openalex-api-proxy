@@ -142,7 +142,10 @@ def forward_request(request_path):
 
     response_source = 'cache'
 
-    if not (response_attrs := memcached.get(cache_key)):
+    # if not (response_attrs := memcached.get(cache_key)):
+
+    # disable caching
+    if True:
         try:
             worker_response = requests.get(worker_url, params=worker_params)
             response_source = worker_response.url
