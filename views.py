@@ -2,8 +2,9 @@ import datetime
 import hashlib
 import json
 import os
-from functools import wraps
 import re
+from functools import wraps
+from urllib.parse import urlparse
 
 import requests
 import shortuuid
@@ -152,6 +153,11 @@ def select_worker_host(request_path):
 def forward_request(request_path):
     worker_host = select_worker_host(request_path)
     worker_url = f'{worker_host}/{request_path}'
+
+    worker_headers = dict(request.headers)
+    if original_host_header := worker_headers.get('Host'):
+        worker_headers['Host'] = re.sub('^[^:]*', urlparse(worker_url).hostname, original_host_header)
+
     worker_params = dict(request.args)
     if 'api_key' in worker_params:
         del worker_params['api_key']
@@ -167,7 +173,7 @@ def forward_request(request_path):
     # disable caching
     if True:
         try:
-            worker_response = requests.get(worker_url, params=worker_params)
+            worker_response = requests.get(worker_url, params=worker_params, headers=worker_headers)
             response_source = worker_response.url
 
             response_attrs = {
