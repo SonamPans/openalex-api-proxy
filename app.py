@@ -56,6 +56,7 @@ db = NullPoolSQLAlchemy(app, session_options={"autoflush": False})
 
 Compress(app)
 
+
 def redis_init(self, uri: str, **options):
     """
     :param uri: uri of the form `redis://[:password]@host:port`,
