@@ -17,7 +17,7 @@ from app import logger
 from app import memcached
 from blocked_requester import check_for_blocked_requester
 
-API_POOL_PUBLIC = 'public'
+API_POOL_PUBLIC = 'common'
 API_POOL_POLITE = 'polite'
 
 
