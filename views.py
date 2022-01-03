@@ -50,7 +50,7 @@ def remote_address():
 def request_mailto_address():
     mailto_address = None
 
-    if arg_mailto := request.args.get('mailto'):
+    if arg_mailto := (request.args.get('mailto') or request.args.get('email')):
         mailto_address = arg_mailto
     elif ua_header := request.headers.get('user-agent'):
         mailto_address = re.findall(r'mailto:([^);]*)|$', ua_header)[0].strip()
@@ -147,8 +147,6 @@ def forward_request(request_path):
         worker_headers['Host'] = re.sub('^[^:]*', urlparse(worker_url).hostname, original_host_header)
 
     worker_params = dict(request.args)
-    if 'api_key' in worker_params:
-        del worker_params['api_key']
 
     cache_key = hashlib.sha256(
         json.dumps({'url': worker_url, 'args': worker_params}, sort_keys=True).encode('utf-8')
