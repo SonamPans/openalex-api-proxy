@@ -136,8 +136,8 @@ def select_worker_host(request_path):
 @limiter.limit(limit_value='10/second', key_func=rate_limit_key)
 @limiter.limit(limit_value='500000/day', key_func=rate_limit_key)
 def forward_request(request_path):
-    if g.api_pool == API_POOL_PUBLIC:
-        time.sleep(2)
+    # if g.api_pool == API_POOL_PUBLIC:
+        # time.sleep(2)
 
     worker_host = select_worker_host(request_path)
     worker_url = f'{worker_host}/{request_path}'
