@@ -19,6 +19,7 @@ from blocked_requester import check_for_blocked_requester
 
 API_POOL_PUBLIC = 'common'
 API_POOL_POLITE = 'polite'
+RATE_LIMIT_EXEMPT_EMAIL = os.environ.get('TOP_SECRET_UNLIMITED_EMAIL')
 
 
 def abort_json(status_code, msg):
@@ -130,6 +131,11 @@ def select_worker_host(request_path):
     # slice, dice. goes to elasticsearch
     else:
         return slice_and_dice_api
+
+
+@limiter.request_filter
+def email_rate_limit_exempt():
+    return g.mailto == RATE_LIMIT_EXEMPT_EMAIL
 
 
 @app.route('/<path:request_path>', methods=['GET'])
