@@ -121,7 +121,7 @@ limiter = Limiter(app, key_func=remote_address)
 
 def select_worker_host(request_path):
     # if it's a path, it goes to the entity api
-    if '/' in request_path[:-1]:
+    if '/' in request_path[:-1] and not request_path.startswith('autocomplete/'):
         return entity_api
 
     # if it's like W123 it's an OpenAlex ID and goes to the entity API
