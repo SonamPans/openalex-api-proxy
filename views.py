@@ -12,7 +12,7 @@ from flask_limiter import Limiter
 from werkzeug.http import http_date
 
 from app import app
-from app import entity_api, slice_and_dice_api
+from app import csv_export_api, entity_api, slice_and_dice_api
 from app import logger
 from app import memcached
 from blocked_requester import check_for_blocked_requester
@@ -119,7 +119,7 @@ def after_request(response):
 limiter = Limiter(app, key_func=remote_address)
 
 
-def select_worker_host(request_path):
+def select_worker_host(request_path, request_args):
     # if it's a path, it goes to the entity api
     if '/' in request_path[:-1] and not request_path.startswith('autocomplete/'):
         return entity_api
@@ -130,6 +130,8 @@ def select_worker_host(request_path):
 
     # slice, dice. goes to elasticsearch
     else:
+        if request_path.startswith('works') and request_args.get('format') == 'csv':
+            return csv_export_api
         return slice_and_dice_api
 
 
@@ -145,7 +147,7 @@ def forward_request(request_path):
     # if g.api_pool == API_POOL_PUBLIC:
         # time.sleep(2)
 
-    worker_host = select_worker_host(request_path)
+    worker_host = select_worker_host(request_path, request.args)
     worker_url = f'{worker_host}/{request_path}'
 
     worker_headers = dict(request.headers)
