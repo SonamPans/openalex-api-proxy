@@ -44,7 +44,7 @@ app.config['RATELIMIT_IN_MEMORY_FALLBACK'] = '100000/day'
 
 slice_and_dice_api = os.getenv('SLICE_AND_DICE_API_URL')
 entity_api = os.getenv('ENTITY_API_URL')
-csv_export_api = os.getenv('FORMATTED_ELASTIC_URL')
+formatter_api = os.getenv('FORMATTED_ELASTIC_URL')
 
 
 class NullPoolSQLAlchemy(SQLAlchemy):
