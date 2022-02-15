@@ -12,7 +12,7 @@ from flask_limiter import Limiter
 from werkzeug.http import http_date
 
 from app import app
-from app import  entity_api, formatter_api, slice_and_dice_api
+from app import elastic_api_url, formatter_api_url
 from app import logger
 from app import memcached
 from blocked_requester import check_for_blocked_requester
@@ -120,22 +120,17 @@ limiter = Limiter(app, key_func=remote_address)
 
 
 def select_worker_host(request_path, request_args):
-    if request_path.startswith('works') and not request_args and request_path.endswith('.bib'):
-        return formatter_api
+    # /works/W2741809807.bib
+    # /W2741809807.bib
+    if re.match(r"^(?:works/+)?[wW]\d+\.bib$", request_path) and not request_args:
+        return formatter_api_url
 
-    # if it's a path, it goes to the entity api
-    if '/' in request_path[:-1] and not request_path.startswith('autocomplete/'):
-        return entity_api
+    # /works?filter=title.search:science&format=csv
+    if re.match(r"^works/?", request_path) and request_args.get('format') == 'csv':
+        return formatter_api_url
 
-    # if it's like W123 it's an OpenAlex ID and goes to the entity API
-    elif len(re.findall(r"^[wWiIvVaAcC]\d+$", request_path)):
-        return entity_api
-
-    # slice, dice. goes to elasticsearch
-    else:
-        if request_path.startswith('works') and request_args.get('format') == 'csv':
-            return formatter_api
-        return slice_and_dice_api
+    # everything else
+    return elastic_api_url
 
 
 @limiter.request_filter

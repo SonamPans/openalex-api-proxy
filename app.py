@@ -42,9 +42,8 @@ app.config['RATELIMIT_HEADER_RETRY_AFTER_VALUE'] = 'http-date'
 app.config['RATELIMIT_IN_MEMORY_FALLBACK_ENABLED'] = True
 app.config['RATELIMIT_IN_MEMORY_FALLBACK'] = '100000/day'
 
-slice_and_dice_api = os.getenv('SLICE_AND_DICE_API_URL')
-entity_api = os.getenv('ENTITY_API_URL')
-formatter_api = os.getenv('FORMATTED_ELASTIC_URL')
+elastic_api_url = os.getenv('ELASTIC_API_URL')
+formatter_api_url  = os.getenv('FORMATTER_API_URL')
 
 
 class NullPoolSQLAlchemy(SQLAlchemy):
