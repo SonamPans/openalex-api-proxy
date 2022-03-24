@@ -2,7 +2,6 @@ import hashlib
 import json
 import os
 import re
-import time
 from urllib.parse import urlparse
 
 import requests
@@ -11,6 +10,7 @@ from flask import request
 from flask_limiter import Limiter
 from werkzeug.http import http_date
 
+from api_key import valid_key
 from app import app
 from app import elastic_api_url, formatter_api_url
 from app import logger
@@ -153,6 +153,17 @@ def forward_request(request_path):
         worker_headers['Host'] = re.sub('^[^:]*', urlparse(worker_url).hostname, original_host_header)
 
     worker_params = dict(request.args)
+
+    if filter_arg := worker_params.get('filter'):
+        if matches := re.findall(r'from_updated_date:\d{4}-\d{2}-\d{2}', filter_arg):
+            logger.info(f'got from_updated_date filter {matches[0]}')
+
+            if 'api_key' not in worker_params:
+                abort_json('403', 'you must include an api_key argument to use from_updated_date')
+
+            key = worker_params.pop('api_key')
+            if not valid_key(key):
+                abort_json('403', f'api_key {key} is expired or invalid')
 
     cache_key = hashlib.sha256(
         json.dumps({'url': worker_url, 'args': worker_params}, sort_keys=True).encode('utf-8')
