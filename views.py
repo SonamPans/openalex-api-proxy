@@ -129,6 +129,9 @@ def select_worker_host(request_path, request_args):
     if re.match(r"^works/?", request_path) and request_args.get('format') == 'csv':
         return formatter_api_url
 
+    if re.match(r"^export/?", request_path):
+        return formatter_api_url
+
     # everything else
     return elastic_api_url
 
