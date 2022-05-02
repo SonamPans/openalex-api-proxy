@@ -188,8 +188,8 @@ def forward_request(request_path):
                 'headers': dict(worker_response.headers),
             }
 
-            if worker_response.status_code < 500:
-                memcached.set(cache_key, response_attrs)
+            #if worker_response.status_code < 500:
+                #memcached.set(cache_key, response_attrs)
 
         except requests.exceptions.RequestException:
             response_attrs = {
