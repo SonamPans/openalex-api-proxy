@@ -1,4 +1,5 @@
 import hashlib
+import shortuuid
 import json
 import os
 import re
@@ -65,12 +66,17 @@ def request_mailto_address():
 
 @app.before_request
 def before_request():
+    g.app_request_id = shortuuid.uuid()
+    logger.info(f'assigned request id {g.app_request_id}')
+
     if mailto := request_mailto_address():
         g.mailto = mailto
         g.api_pool = API_POOL_POLITE
     else:
         g.mailto = None
         g.api_pool = API_POOL_PUBLIC
+
+    logger.info(f'{g.app_request_id}: assigned api pool {g.api_pool}')
 
     if blocked_requester := check_for_blocked_requester(request_ip=remote_address(), request_email=g.mailto):
         logger.info(json.dumps({'blocked_requester': blocked_requester.to_dict()}))
@@ -79,9 +85,14 @@ def before_request():
             403, f'{blocked_requester.email or blocked_requester.ip} is blocked. Please contact team@ourresearch.org.'
         )
 
+    logger.info(f'{g.app_request_id}: finished with before_request')
+
 
 @app.after_request
 def after_request(response):
+    logger.info(f'{g.app_request_id}: starting after_request')
+    logger.info(f'{g.app_request_id}: setting CORS headers')
+
     # support CORS
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS, PUT, DELETE, PATCH"
@@ -92,6 +103,8 @@ def after_request(response):
     # make not cacheable because the GETs change after parameter change posts!
     response.cache_control.max_age = 0
     response.cache_control.no_cache = True
+
+    logger.info(f'{g.app_request_id}: massaging rate limit headers')
 
     if response.status_code != 429:
         response.headers.pop('Retry-After', None)
@@ -113,6 +126,8 @@ def after_request(response):
 
     response.headers['X-API-Pool'] = g.api_pool
 
+    logger.info(f'{g.app_request_id}: finished after_request, returning final response')
+
     return response
 
 
@@ -120,6 +135,8 @@ limiter = Limiter(app, key_func=remote_address)
 
 
 def select_worker_host(request_path, request_args):
+    logger.info(f'{g.app_request_id}: started_select_worker_host')
+
     # /works/W2741809807.bib
     # /W2741809807.bib
     if re.match(r"^(?:works/+)?[wW]\d+\.bib$", request_path) and not request_args:
@@ -145,10 +162,13 @@ def email_rate_limit_exempt():
 @limiter.limit(limit_value='10/second', key_func=rate_limit_key)
 @limiter.limit(limit_value='500000/day', key_func=rate_limit_key)
 def forward_request(request_path):
+    logger.info(f'{g.app_request_id}: started forward_request')
+
     # if g.api_pool == API_POOL_PUBLIC:
         # time.sleep(2)
 
     worker_host = select_worker_host(request_path, request.args)
+    logger.info(f'{g.app_request_id}: got worker host {worker_host}')
     worker_url = f'{worker_host}/{request_path}'
 
     worker_headers = dict(request.headers)
@@ -156,6 +176,7 @@ def forward_request(request_path):
         worker_headers['Host'] = re.sub('^[^:]*', urlparse(worker_url).hostname, original_host_header)
 
     worker_params = dict(request.args)
+    logger.info(f'{g.app_request_id}: calculated worker_params')
 
     if filter_arg := worker_params.get('filter'):
         if matches := re.findall(r'from_updated_date:\d{4}-\d{2}-\d{2}', filter_arg):
@@ -168,6 +189,8 @@ def forward_request(request_path):
             if not valid_key(key):
                 abort_json('403', f'api_key {key} is expired or invalid')
 
+    logger.info(f'{g.app_request_id}: authorized from_updated_date')
+
     cache_key = hashlib.sha256(
         json.dumps({'url': worker_url, 'args': worker_params}, sort_keys=True).encode('utf-8')
     ).hexdigest()
@@ -179,6 +202,8 @@ def forward_request(request_path):
     # disable caching
     if True:
         try:
+            logger.info(f'{g.app_request_id}: getting response from worker')
+
             worker_response = requests.get(worker_url, params=worker_params, headers=worker_headers)
             response_source = worker_response.url
 
@@ -187,6 +212,8 @@ def forward_request(request_path):
                 'content': worker_response.content,
                 'headers': dict(worker_response.headers),
             }
+
+            logger.info(f'{g.app_request_id}: got response from worker')
 
             #if worker_response.status_code < 500:
                 #memcached.set(cache_key, response_attrs)
@@ -208,14 +235,21 @@ def forward_request(request_path):
             'api_pool': g.api_pool,
             'mailto': g.mailto,
             'remote_address': remote_address(),
+            'request_id': g.app_request_id,
         }
     ))
 
+    logger.info(f'{g.app_request_id}: building proxy response from worker response')
+
     response = make_response(response_attrs['content'], response_attrs['status_code'])
+
+    logger.info(f'{g.app_request_id}: massaging proxy response headers')
 
     for k, v in response_attrs['headers'].items():
         if k == 'Content-Type' or k.startswith('Access-Control-'):
             response.headers[k] = v
+
+    logger.info(f'{g.app_request_id}: returning proxy response from forward_request')
 
     return response
 
