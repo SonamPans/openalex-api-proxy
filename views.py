@@ -176,6 +176,15 @@ def forward_request(request_path):
         worker_headers['Host'] = re.sub('^[^:]*', urlparse(worker_url).hostname, original_host_header)
 
     worker_params = dict(request.args)
+
+    # don't pass email or mailto args to elastic worker
+    if worker_host == elastic_api_url:
+        try:
+            del worker_params['email']
+            del worker_params['mailto']
+        except KeyError:
+            pass
+
     logger.info(f'{g.app_request_id}: calculated worker_params')
 
     if filter_arg := worker_params.get('filter'):
