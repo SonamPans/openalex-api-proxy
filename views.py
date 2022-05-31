@@ -204,7 +204,7 @@ def forward_request(request_path):
         try:
             logger.info(f'{g.app_request_id}: getting response from worker')
 
-            worker_response = requests.get(worker_url, params=worker_params, headers=worker_headers)
+            worker_response = requests.get(worker_url, params=worker_params, headers=worker_headers, allow_redirects=False)
             response_source = worker_response.url
 
             response_attrs = {
@@ -246,7 +246,8 @@ def forward_request(request_path):
     logger.info(f'{g.app_request_id}: massaging proxy response headers')
 
     for k, v in response_attrs['headers'].items():
-        if k == 'Content-Type' or k.startswith('Access-Control-'):
+        k_low = k.lower()
+        if k_low == 'content-type' or k_low.startswith('access-control-') or k_low == 'location':
             response.headers[k] = v
 
     logger.info(f'{g.app_request_id}: returning proxy response from forward_request')
