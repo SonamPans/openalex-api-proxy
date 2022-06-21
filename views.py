@@ -133,6 +133,8 @@ def after_request(response):
 
 limiter = Limiter(app, key_func=remote_address)
 
+formatter_session = requests.Session()
+elastic_session = requests.Session()
 
 def select_worker_host(request_path, request_args):
     logger.info(f'{g.app_request_id}: started_select_worker_host')
@@ -140,17 +142,17 @@ def select_worker_host(request_path, request_args):
     # /works/W2741809807.bib
     # /W2741809807.bib
     if re.match(r"^(?:works/+)?[wW]\d+\.bib$", request_path) and not request_args:
-        return formatter_api_url
+        return {'url': formatter_api_url, 'session': formatter_session}
 
     # /works?filter=title.search:science&format=csv
     if re.match(r"^works/?", request_path) and request_args.get('format') == 'csv':
-        return formatter_api_url
+        return {'url': formatter_api_url, 'session': formatter_session}
 
     if re.match(r"^export/?", request_path):
-        return formatter_api_url
+        return {'url': formatter_api_url, 'session': formatter_session}
 
     # everything else
-    return elastic_api_url
+    return {'url': elastic_api_url, 'session': elastic_session}
 
 
 @limiter.request_filter
@@ -168,8 +170,8 @@ def forward_request(request_path):
         # time.sleep(2)
 
     worker_host = select_worker_host(request_path, request.args)
-    logger.info(f'{g.app_request_id}: got worker host {worker_host}')
-    worker_url = f'{worker_host}/{request_path}'
+    logger.info(f'{g.app_request_id}: got worker host {worker_host.get("url")}')
+    worker_url = f'{worker_host.get("url")}/{request_path}'
 
     worker_headers = dict(request.headers)
     if original_host_header := worker_headers.get('Host'):
@@ -178,7 +180,7 @@ def forward_request(request_path):
     worker_params = dict(request.args)
 
     # don't pass email or mailto args to elastic worker
-    if worker_host == elastic_api_url:
+    if worker_host.get("url") == elastic_api_url:
         try:
             del worker_params['email']
             del worker_params['mailto']
@@ -213,7 +215,7 @@ def forward_request(request_path):
         try:
             logger.info(f'{g.app_request_id}: getting response from worker')
 
-            worker_response = requests.get(worker_url, params=worker_params, headers=worker_headers, allow_redirects=False)
+            worker_response = worker_host.get("session").get(worker_url, params=worker_params, headers=worker_headers, allow_redirects=False)
             response_source = worker_response.url
 
             response_attrs = {
