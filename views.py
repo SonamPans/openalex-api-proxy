@@ -190,8 +190,8 @@ def forward_request(request_path):
     logger.info(f'{g.app_request_id}: calculated worker_params')
 
     if filter_arg := worker_params.get('filter'):
-        if matches := re.findall(r'from_updated_date:\d{4}-\d{2}-\d{2}', filter_arg):
-            logger.info(f'got from_updated_date filter {matches[0]}')
+        if matches := re.findall(r'(?:from_updated_date|from_created_date):\d{4}-\d{2}-\d{2}', filter_arg):
+            logger.info(f'got from_updated/created_date filter "{matches[0]}"')
 
             if 'api_key' not in worker_params:
                 abort_json('403', 'you must include an api_key argument to use from_updated_date')
