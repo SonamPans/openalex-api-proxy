@@ -13,7 +13,7 @@ from werkzeug.http import http_date
 
 from api_key import valid_key
 from app import app
-from app import elastic_api_url, formatter_api_url
+from app import elastic_api_url, formatter_api_url, ngrams_api_url
 from app import logger
 from app import memcached
 from blocked_requester import check_for_blocked_requester
@@ -135,6 +135,8 @@ limiter = Limiter(app, key_func=remote_address)
 
 formatter_session = requests.Session()
 elastic_session = requests.Session()
+ngrams_session = requests.Session()
+
 
 def select_worker_host(request_path, request_args):
     logger.info(f'{g.app_request_id}: started_select_worker_host')
@@ -150,6 +152,10 @@ def select_worker_host(request_path, request_args):
 
     if re.match(r"^export/?", request_path):
         return {'url': formatter_api_url, 'session': formatter_session}
+
+    # /works/W2548140242/ngrams
+    if re.match(r"^works/[wW]\d+/ngrams/?$", request_path):
+        return {'url': ngrams_api_url, 'session': ngrams_session}
 
     # everything else
     return {'url': elastic_api_url, 'session': elastic_session}
