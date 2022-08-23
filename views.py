@@ -153,8 +153,8 @@ def select_worker_host(request_path, request_args):
     if re.match(r"^export/?", request_path):
         return {'url': formatter_api_url, 'session': formatter_session}
 
-    # /works/W2548140242/ngrams
-    if re.match(r"^works/[wW]\d+/ngrams/?$", request_path):
+    # /works/W2548140242/ngrams or /works/10.1103/physrevlett.77.3865/ngrams
+    if re.match(r"^works/[wW]\d+/ngrams/?$", request_path) or re.match(r"^works/10\..*/ngrams/?$", request_path):
         return {'url': ngrams_api_url, 'session': ngrams_session}
 
     # everything else
