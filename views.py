@@ -163,7 +163,7 @@ def select_worker_host(request_path, request_args):
 
 @limiter.request_filter
 def email_rate_limit_exempt():
-    return g.mailto in RATE_LIMIT_EXEMPT_EMAILS
+    return (g.mailto in RATE_LIMIT_EXEMPT_EMAILS) or (request.path and request.path.endswith('/ngrams'))
 
 
 @app.route('/<path:request_path>', methods=['GET'])
