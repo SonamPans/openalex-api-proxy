@@ -206,6 +206,10 @@ def forward_request(request_path):
             if not valid_key(key):
                 abort_json('403', f'api_key {key} is expired or invalid')
 
+        if re.search(r'has_ngrams:(true|false)', filter_arg):
+            filter_arg = re.sub(r'has_ngrams:(true|false)', r'has_fulltext:\1', filter_arg)
+            worker_params['filter'] = filter_arg
+
     logger.info(f'{g.app_request_id}: authorized from_updated_date')
 
     cache_key = hashlib.sha256(
@@ -245,7 +249,7 @@ def forward_request(request_path):
     logger.info(json.dumps(
         {
             'path': request_path,
-            'args': dict(request.args),
+            'args': worker_params,
             'response_source': response_source,
             'cache_key': cache_key,
             'response_status_code': response_attrs['status_code'],
