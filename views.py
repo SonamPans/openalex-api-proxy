@@ -203,9 +203,11 @@ def forward_request(request_path):
             if 'api_key' not in worker_params:
                 abort_json('403', 'you must include an api_key argument to use from_updated_date')
 
-            key = worker_params.pop('api_key')
+            key = worker_params.get('api_key', None)
             if not valid_key(key):
                 abort_json('403', f'api_key {key} is expired or invalid')
+
+    worker_params.pop('api_key', None)
 
     logger.info(f'{g.app_request_id}: authorized from_updated_date')
 
