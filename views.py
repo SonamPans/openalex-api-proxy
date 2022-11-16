@@ -267,7 +267,12 @@ def forward_request(request_path):
 
     for k, v in response_attrs['headers'].items():
         k_low = k.lower()
-        if k_low == 'content-type' or k_low.startswith('access-control-') or k_low == 'location':
+        if (
+            k_low == 'content-type'
+            or k_low == 'content-disposition'
+            or k_low.startswith('access-control-')
+            or k_low == 'location'
+        ):
             response.headers[k] = v
 
     logger.info(f'{g.app_request_id}: returning proxy response from forward_request')
