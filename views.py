@@ -20,6 +20,7 @@ from blocked_requester import check_for_blocked_requester
 
 API_POOL_PUBLIC = 'common'
 API_POOL_POLITE = 'polite'
+HIGH_RATE_LIMIT_API_KEYS = os.environ.get('HIGH_RATE_LIMIT_API_KEYS', '').split(';')
 RATE_LIMIT_EXEMPT_EMAILS = os.environ.get('TOP_SECRET_UNLIMITED_EMAILS', '').split(';')
 
 
@@ -38,8 +39,18 @@ def abort_json(status_code, msg):
 def rate_limit_key():
     if g.api_pool == API_POOL_POLITE:
         return g.mailto
+    elif g.api_key:
+        return g.api_key
     else:
         return remote_address()
+
+
+def rate_limit_value():
+    if g.api_key and g.api_key in HIGH_RATE_LIMIT_API_KEYS:
+        logger.info(f'Authorized high rate limit for {g.app_request_id} due to API key.')
+        return '100/second, 1250000/day'
+    else:
+        return '10/second, 500000/day'
 
 
 def remote_address():
@@ -68,6 +79,8 @@ def request_mailto_address():
 def before_request():
     g.app_request_id = shortuuid.uuid()
     logger.info(f'assigned request id {g.app_request_id}')
+
+    g.api_key = request.args.get('api_key')
 
     if mailto := request_mailto_address():
         g.mailto = mailto
@@ -168,13 +181,9 @@ def email_rate_limit_exempt():
 
 
 @app.route('/<path:request_path>', methods=['GET'])
-@limiter.limit(limit_value='10/second', key_func=rate_limit_key)
-@limiter.limit(limit_value='500000/day', key_func=rate_limit_key)
+@limiter.limit(limit_value=rate_limit_value, key_func=rate_limit_key)
 def forward_request(request_path):
     logger.info(f'{g.app_request_id}: started forward_request')
-
-    # if g.api_pool == API_POOL_PUBLIC:
-        # time.sleep(2)
 
     worker_host = select_worker_host(request_path, request.args)
     logger.info(f'{g.app_request_id}: got worker host {worker_host.get("url")}')
@@ -200,12 +209,10 @@ def forward_request(request_path):
         if matches := re.findall(r'(?:from_updated_date|from_created_date):\d{4}-\d{2}-\d{2}', filter_arg):
             logger.info(f'got from_updated/created_date filter "{matches[0]}"')
 
-            if 'api_key' not in worker_params:
+            if not g.api_key:
                 abort_json('403', 'you must include an api_key argument to use from_updated_date')
-
-            key = worker_params.get('api_key', None)
-            if not valid_key(key):
-                abort_json('403', f'api_key {key} is expired or invalid')
+            elif not valid_key(g.api_key):
+                abort_json('403', f'api_key {g.api_key} is expired or invalid')
 
     worker_params.pop('api_key', None)
 
