@@ -113,10 +113,6 @@ def after_request(response):
     response.headers["Access-Control-Expose-Headers"] = "Authorization, Cache-Control"
     response.headers["Access-Control-Allow-Credentials"] = "true"
 
-    # make not cacheable because the GETs change after parameter change posts!
-    response.cache_control.max_age = 0
-    response.cache_control.no_cache = True
-
     logger.info(f'{g.app_request_id}: massaging rate limit headers')
 
     if response.status_code != 429:
