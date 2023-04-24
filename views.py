@@ -47,7 +47,7 @@ def rate_limit_key():
 
 def rate_limit_value():
     if g.api_key and g.api_key in HIGH_RATE_LIMIT_API_KEYS:
-        logger.info(f'Authorized high rate limit for {g.app_request_id} due to API key.')
+        logger.debug(f'Authorized high rate limit for {g.app_request_id} due to API key.')
         return '100/second, 1250000/day'
     else:
         return '10/second, 500000/day'
@@ -78,7 +78,7 @@ def request_mailto_address():
 @app.before_request
 def before_request():
     g.app_request_id = shortuuid.uuid()
-    logger.info(f'assigned request id {g.app_request_id}')
+    logger.debug(f'assigned request id {g.app_request_id}')
 
     g.api_key = request.args.get('api_key')
 
@@ -89,7 +89,7 @@ def before_request():
         g.mailto = None
         g.api_pool = API_POOL_PUBLIC
 
-    logger.info(f'{g.app_request_id}: assigned api pool {g.api_pool}')
+    logger.debug(f'{g.app_request_id}: assigned api pool {g.api_pool}')
 
     if blocked_requester := check_for_blocked_requester(request_ip=remote_address(), request_email=g.mailto):
         logger.info(json.dumps({'blocked_requester': blocked_requester.to_dict()}))
@@ -98,13 +98,13 @@ def before_request():
             403, f'{blocked_requester.email or blocked_requester.ip} is blocked. Please contact team@ourresearch.org.'
         )
 
-    logger.info(f'{g.app_request_id}: finished with before_request')
+    logger.debug(f'{g.app_request_id}: finished with before_request')
 
 
 @app.after_request
 def after_request(response):
-    logger.info(f'{g.app_request_id}: starting after_request')
-    logger.info(f'{g.app_request_id}: setting CORS headers')
+    logger.debug(f'{g.app_request_id}: starting after_request')
+    logger.debug(f'{g.app_request_id}: setting CORS headers')
 
     # support CORS
     response.headers["Access-Control-Allow-Origin"] = "*"
@@ -113,7 +113,7 @@ def after_request(response):
     response.headers["Access-Control-Expose-Headers"] = "Authorization, Cache-Control"
     response.headers["Access-Control-Allow-Credentials"] = "true"
 
-    logger.info(f'{g.app_request_id}: massaging rate limit headers')
+    logger.debug(f'{g.app_request_id}: massaging rate limit headers')
 
     if response.status_code != 429:
         response.headers.pop('Retry-After', None)
@@ -135,7 +135,7 @@ def after_request(response):
 
     response.headers['X-API-Pool'] = g.api_pool
 
-    logger.info(f'{g.app_request_id}: finished after_request, returning final response')
+    logger.debug(f'{g.app_request_id}: finished after_request, returning final response')
 
     return response
 
@@ -148,7 +148,7 @@ ngrams_session = requests.Session()
 
 
 def select_worker_host(request_path, request_args):
-    logger.info(f'{g.app_request_id}: started_select_worker_host')
+    logger.debug(f'{g.app_request_id}: started_select_worker_host')
     group_by = request_args.get('group-by') or request_args.get('group_by')
 
     # /works/W2741809807.bib
@@ -179,10 +179,10 @@ def email_rate_limit_exempt():
 @app.route('/<path:request_path>', methods=['GET'])
 @limiter.limit(limit_value=rate_limit_value, key_func=rate_limit_key)
 def forward_request(request_path):
-    logger.info(f'{g.app_request_id}: started forward_request')
+    logger.debug(f'{g.app_request_id}: started forward_request')
 
     worker_host = select_worker_host(request_path, request.args)
-    logger.info(f'{g.app_request_id}: got worker host {worker_host.get("url")}')
+    logger.debug(f'{g.app_request_id}: got worker host {worker_host.get("url")}')
     worker_url = f'{worker_host.get("url")}/{request_path}'
 
     worker_headers = dict(request.headers)
@@ -199,11 +199,11 @@ def forward_request(request_path):
         except KeyError:
             pass
 
-    logger.info(f'{g.app_request_id}: calculated worker_params')
+    logger.debug(f'{g.app_request_id}: calculated worker_params')
 
     if filter_arg := worker_params.get('filter'):
         if matches := re.findall(r'(?:from_updated_date|from_created_date):\d{4}-\d{2}-\d{2}', filter_arg):
-            logger.info(f'got from_updated/created_date filter "{matches[0]}"')
+            logger.debug(f'got from_updated/created_date filter "{matches[0]}"')
 
             if not g.api_key:
                 abort_json('403', 'you must include an api_key argument to use from_updated_date')
@@ -212,7 +212,7 @@ def forward_request(request_path):
 
     worker_params.pop('api_key', None)
 
-    logger.info(f'{g.app_request_id}: authorized from_updated_date')
+    logger.debug(f'{g.app_request_id}: authorized from_updated_date')
 
     cache_key = hashlib.sha256(
         json.dumps({'url': worker_url, 'args': worker_params}, sort_keys=True).encode('utf-8')
@@ -225,7 +225,7 @@ def forward_request(request_path):
     # disable caching
     if True:
         try:
-            logger.info(f'{g.app_request_id}: getting response from worker')
+            logger.debug(f'{g.app_request_id}: getting response from worker')
 
             worker_response = worker_host.get("session").get(worker_url, params=worker_params, headers=worker_headers, allow_redirects=False)
             response_source = worker_response.url
@@ -236,7 +236,7 @@ def forward_request(request_path):
                 'headers': dict(worker_response.headers),
             }
 
-            logger.info(f'{g.app_request_id}: got response from worker')
+            logger.debug(f'{g.app_request_id}: got response from worker')
 
             #if worker_response.status_code < 500:
                 #memcached.set(cache_key, response_attrs)
@@ -248,7 +248,7 @@ def forward_request(request_path):
                 'headers': {}
             }
 
-    logger.info(json.dumps(
+    logger.debug(json.dumps(
         {
             'path': request_path,
             'args': worker_params,
@@ -262,11 +262,11 @@ def forward_request(request_path):
         }
     ))
 
-    logger.info(f'{g.app_request_id}: building proxy response from worker response')
+    logger.debug(f'{g.app_request_id}: building proxy response from worker response')
 
     response = make_response(response_attrs['content'], response_attrs['status_code'])
 
-    logger.info(f'{g.app_request_id}: massaging proxy response headers')
+    logger.debug(f'{g.app_request_id}: massaging proxy response headers')
 
     for k, v in response_attrs['headers'].items():
         k_low = k.lower()
@@ -278,7 +278,7 @@ def forward_request(request_path):
         ):
             response.headers[k] = v
 
-    logger.info(f'{g.app_request_id}: returning proxy response from forward_request')
+    logger.debug(f'{g.app_request_id}: returning proxy response from forward_request')
 
     return response
 

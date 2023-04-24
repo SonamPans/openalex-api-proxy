@@ -12,11 +12,13 @@ from flask import Flask
 from flask_compress import Compress
 from flask_sqlalchemy import SQLAlchemy
 from limits.storage.redis import RedisStorage
+import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
 from sqlalchemy.pool import NullPool
 
 logging.basicConfig(
     stream=sys.stdout,
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(thread)d: %(message)s'
 )
 
@@ -31,6 +33,8 @@ for library in libraries_to_mum:
     library_logger.setLevel(logging.WARNING)
     library_logger.propagate = True
     warnings.filterwarnings("ignore", category=UserWarning, module=library)
+
+sentry_sdk.init(dsn=os.environ.get("SENTRY_DSN"), integrations=[FlaskIntegration()])
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL').replace('postgres://', 'postgresql://')
