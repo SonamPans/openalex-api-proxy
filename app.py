@@ -10,6 +10,7 @@ import limits.util
 import redis
 from flask import Flask
 from flask_compress import Compress
+from flask_talisman import Talisman
 from flask_sqlalchemy import SQLAlchemy
 from limits.storage.redis import RedisStorage
 import sentry_sdk
@@ -59,6 +60,7 @@ class NullPoolSQLAlchemy(SQLAlchemy):
 
 db = NullPoolSQLAlchemy(app, session_options={"autoflush": False})
 
+Talisman(app, force_https=True)
 Compress(app)
 
 
