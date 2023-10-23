@@ -171,6 +171,8 @@ def select_worker_host(request_path, request_args):
     return {'url': elastic_api_url, 'session': elastic_session}
 
 
+# request is exempt from rate limiting if this function returns True
+# see https://flask-limiter.readthedocs.io/en/stable/api.html#flask_limiter.Limiter.request_filter
 @limiter.request_filter
 def email_rate_limit_exempt():
     return (g.mailto in RATE_LIMIT_EXEMPT_EMAILS) or (request.path and request.path.endswith('/ngrams'))
