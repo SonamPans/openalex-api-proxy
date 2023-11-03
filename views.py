@@ -36,6 +36,22 @@ def abort_json(status_code, msg):
     abort(resp)
 
 
+def protect_updated_created_params(arg, arg_type):
+    pattern = r'(?:from|to)_(?:updated|created)_date:[><]?\d{4}-\d{2}-\d{2}'
+    matches = re.findall(pattern, arg)
+    if matches:
+        # Joining all matches into a single string for logging
+        matched_dates = '", "'.join(matches)
+        logger.debug(f'got {arg_type} with date filters "{matched_dates}"')
+        if not g.api_key:
+            abort_json(
+                '403',
+                f'you must include an api_key argument to use {matched_dates} with {arg_type}'
+            )
+        elif not valid_key(g.api_key):
+            abort_json('403', f'api_key {g.api_key} is expired or invalid')
+
+
 def rate_limit_key():
     if g.api_pool == API_POOL_POLITE:
         return g.mailto
@@ -204,13 +220,10 @@ def forward_request(request_path):
     logger.debug(f'{g.app_request_id}: calculated worker_params')
 
     if filter_arg := worker_params.get('filter'):
-        if matches := re.findall(r'(?:from_updated_date|from_created_date):\d{4}-\d{2}-\d{2}', filter_arg):
-            logger.debug(f'got from_updated/created_date filter "{matches[0]}"')
+        protect_updated_created_params(filter_arg, 'filter')
 
-            if not g.api_key:
-                abort_json('403', 'you must include an api_key argument to use from_updated_date')
-            elif not valid_key(g.api_key):
-                abort_json('403', f'api_key {g.api_key} is expired or invalid')
+    if sort_arg := worker_params.get('sort'):
+        protect_updated_created_params(sort_arg, 'sort')
 
     worker_params.pop('api_key', None)
 
