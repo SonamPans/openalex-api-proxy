@@ -37,16 +37,20 @@ def abort_json(status_code, msg):
 
 
 def protect_updated_created_params(arg, arg_type):
-    pattern = r'(?:from|to)_(?:updated|created)_date:[><]?\d{4}-\d{2}-\d{2}'
+    if arg_type == 'filter':
+        pattern = r'(?:from|to)_(?:updated|created)_date:[><]?\d{4}-\d{2}-\d{2}'
+    elif arg_type == 'sort':
+        pattern = r'(from|to)_updated_date(?::(asc|desc))?'
+    else:
+        raise ValueError(f'arg_type {arg_type} is not supported')
     matches = re.findall(pattern, arg)
     if matches:
-        # Joining all matches into a single string for logging
-        matched_dates = '", "'.join(matches)
-        logger.debug(f'got {arg_type} with date filters "{matched_dates}"')
+        matched_string = '", "'.join(matches)
+        logger.debug(f'got {arg_type} with "{matched_string}"')
         if not g.api_key:
             abort_json(
                 '403',
-                f'you must include an api_key argument to use {matched_dates} with {arg_type}'
+                f'you must include an api_key argument to use {matched_string} with {arg_type}'
             )
         elif not valid_key(g.api_key):
             abort_json('403', f'api_key {g.api_key} is expired or invalid')
