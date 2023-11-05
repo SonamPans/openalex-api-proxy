@@ -40,7 +40,7 @@ def protect_updated_created_params(arg, arg_type):
     if arg_type == 'filter':
         pattern = r'(?:from|to)_(?:updated|created)_date:[><]?\d{4}-\d{2}-\d{2}'
     elif arg_type == 'sort':
-        pattern = r'(from|to)_updated_date(?::(asc|desc))?'
+        pattern = r'(?:from|to)_updated_date(?::(?:asc|desc))?'
     else:
         raise ValueError(f'arg_type {arg_type} is not supported')
     matches = re.findall(pattern, arg)
@@ -100,7 +100,12 @@ def before_request():
     g.app_request_id = shortuuid.uuid()
     logger.debug(f'assigned request id {g.app_request_id}')
 
-    g.api_key = request.args.get('api_key')
+    g.api_key = (
+            request.args.get('api_key')
+            or request.args.get('api-key')
+            or request.headers.get('api_key')
+            or request.headers.get('api-key')
+    )
 
     if mailto := request_mailto_address():
         g.mailto = mailto
