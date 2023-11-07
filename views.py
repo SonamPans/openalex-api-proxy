@@ -40,7 +40,7 @@ def protect_updated_created_params(arg, arg_type):
     if arg_type == 'filter':
         pattern = r'(?:from|to)_(?:updated|created)_date:[><]?\d{4}-\d{2}-\d{2}'
     elif arg_type == 'sort':
-        pattern = r'(?:from|to)_updated_date(?::(?:asc|desc))?'
+        pattern = r'(?:from|to)_(?:updated|created)_date(?::(?:asc|desc))?'
     else:
         raise ValueError(f'arg_type {arg_type} is not supported')
     matches = re.findall(pattern, arg)
