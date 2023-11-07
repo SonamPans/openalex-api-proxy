@@ -85,6 +85,8 @@ def request_mailto_address():
 
     if arg_mailto := (request.args.get('mailto') or request.args.get('email')):
         mailto_address = arg_mailto
+    elif from_header := request.headers.get('from'):
+        mailto_address = from_header
     elif ua_header := request.headers.get('user-agent'):
         mailto_address = re.findall(r'mailto:([^);]*)|$', ua_header)[0].strip()
 
@@ -95,17 +97,35 @@ def request_mailto_address():
     return None
 
 
-@app.before_request
-def before_request():
-    g.app_request_id = shortuuid.uuid()
-    logger.debug(f'assigned request id {g.app_request_id}')
+def request_api_key():
+    # first, look for "Authorization" header
+    # Should be "Authorization: Bearer <api-key>"
+    # https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication
+    header_auth = request.headers.get('authorization')
+    if header_auth:
+        try:
+            auth_type, api_key = header_auth.split(' ')
+            if auth_type.lower() == 'bearer':
+                return api_key
+        except ValueError:
+            logger.debug(f'invalid "authorization" header: {header_auth}')
+            abort_json('400', f'invalid "authorization" header')
 
-    g.api_key = (
+    # if not successful, look for the api key either in the url or the header
+    return (
             request.args.get('api_key')
             or request.args.get('api-key')
             or request.headers.get('api_key')
             or request.headers.get('api-key')
     )
+
+
+@app.before_request
+def before_request():
+    g.app_request_id = shortuuid.uuid()
+    logger.debug(f'assigned request id {g.app_request_id}')
+
+    g.api_key = request_api_key()
 
     if mailto := request_mailto_address():
         g.mailto = mailto
