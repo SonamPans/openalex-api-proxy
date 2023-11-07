@@ -178,7 +178,10 @@ def after_request(response):
         except ValueError:
             pass
 
-    response.headers['X-API-Pool'] = g.api_pool
+    try:
+        response.headers['X-API-Pool'] = g.api_pool
+    except AttributeError:
+        pass
 
     logger.debug(f'{g.app_request_id}: finished after_request, returning final response')
 
