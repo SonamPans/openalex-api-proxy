@@ -134,6 +134,8 @@ def before_request():
         g.mailto = None
         g.api_pool = API_POOL_PUBLIC
 
+    logger.info(f"url: {request.path}, mailto: {g.mailto}, api_key: {g.api_key}")
+
     logger.debug(f'{g.app_request_id}: assigned api pool {g.api_pool}')
 
     if blocked_requester := check_for_blocked_requester(request_ip=remote_address(), request_email=g.mailto):
