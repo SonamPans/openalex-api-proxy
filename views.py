@@ -134,7 +134,7 @@ def before_request():
         g.mailto = None
         g.api_pool = API_POOL_PUBLIC
 
-    logger.info(f"url: {request.path}, mailto: {g.mailto}, api_key: {g.api_key}")
+    logger.info(f"url: {request.url}, mailto: {g.mailto}, api_key: {g.api_key}")
 
     logger.debug(f'{g.app_request_id}: assigned api pool {g.api_pool}')
 
