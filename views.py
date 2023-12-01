@@ -56,6 +56,21 @@ def protect_updated_created_params(arg, arg_type):
             abort_json('403', f'api_key {g.api_key} is expired or invalid')
 
 
+def protect_high_per_page_param(per_page_arg):
+    try:
+        if per_page_arg and int(per_page_arg) > 200:
+            if not g.api_key:
+                abort_json(
+                    '403',
+                    'you must include an api_key argument to use per-page from 200 to 500'
+                )
+            elif not valid_key(g.api_key):
+                abort_json('403', f'api_key {g.api_key} is expired or invalid')
+    except ValueError:
+        # let the api handle this
+        pass
+
+
 def rate_limit_key():
     if g.api_pool == API_POOL_POLITE:
         return g.mailto
@@ -259,6 +274,9 @@ def forward_request(request_path):
     if sort_arg := worker_params.get('sort'):
         protect_updated_created_params(sort_arg, 'sort')
 
+    if per_page_arg := worker_params.get('per-page') or worker_params.get('per_page'):
+        protect_high_per_page_param(per_page_arg)
+
     worker_params.pop('api_key', None)
 
     logger.debug(f'{g.app_request_id}: authorized from_updated_date')
@@ -342,5 +360,5 @@ def base_endpoint():
 
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 8000))
     app.run(host='0.0.0.0', port=port, debug=True, threaded=True)
