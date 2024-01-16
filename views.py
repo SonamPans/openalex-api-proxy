@@ -215,6 +215,7 @@ ngrams_session = requests.Session()
 def select_worker_host(request_path, request_args):
     logger.debug(f'{g.app_request_id}: started_select_worker_host')
     group_by = request_args.get('group-by') or request_args.get('group_by')
+    group_bys = request_args.get('group-bys') or request_args.get('group_bys')
 
     # /works/W2741809807.bib
     # /W2741809807.bib
@@ -222,7 +223,7 @@ def select_worker_host(request_path, request_args):
         return {'url': formatter_api_url, 'session': formatter_session}
 
     # /works?filter=title.search:science&format=csv
-    if re.match(r"^works/?", request_path) and request_args.get('format') == 'csv' and not group_by:
+    if re.match(r"^works/?", request_path) and request_args.get('format') == 'csv' and not group_by and not group_bys:
         return {'url': formatter_api_url, 'session': formatter_session}
 
     if re.match(r"^export/?", request_path):
