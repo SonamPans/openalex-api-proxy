@@ -106,7 +106,7 @@ def request_mailto_address():
         mailto_address = re.findall(r'mailto:([^);]*)|$', ua_header)[0].strip()
 
     # take anything that vaguely looks like an email address
-    if re.match(r'^.+@.+\..+$', mailto_address):
+    if mailto_address and re.match(r'^.+@.+\..+$', mailto_address):
         return mailto_address
 
     return None
