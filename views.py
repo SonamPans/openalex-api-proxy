@@ -207,9 +207,11 @@ def select_worker_host(request_path, request_args):
     if re.match(r"^(?:works/+)?[wW]\d+\.bib$", request_path) and not request_args:
         return {'url': formatter_api_url, 'session': formatter_session}
 
-    # /works?filter=title.search:science&format=csv
-    if re.match(r"^works/?", request_path) and request_args.get('format') == 'csv' and not group_by and not group_bys:
-        return {'url': formatter_api_url, 'session': formatter_session}
+    # /works?filter=title.search:science&format=csv or /works?filter=title.search:science&format=ris
+    if re.match(r"^works/?", request_path):
+        requested_format = request_args.get('format')
+        if requested_format and requested_format.strip().lower() in ['csv', 'ris'] and not group_by and not group_bys:
+            return {'url': formatter_api_url, 'session': formatter_session}
 
     if re.match(r"^export/?", request_path):
         return {'url': formatter_api_url, 'session': formatter_session}
