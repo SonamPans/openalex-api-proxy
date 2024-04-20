@@ -19,7 +19,7 @@ from app import logger
 from app import memcached
 from blocked_requester import check_for_blocked_requester
 
-from sentry_sdk import capture_message
+import sentry_sdk
 
 API_POOL_PUBLIC = 'common'
 API_POOL_POLITE = 'polite'
@@ -143,7 +143,12 @@ def before_request():
 
     if g.api_key == os.environ.get('DEBUG_API_KEY', ''):
         # send message to sentry
-        capture_message(f"RATE_LIMIT_EXEMPT_EMAILS_FROM_DB: {RATE_LIMIT_EXEMPT_EMAILS_FROM_DB}")
+        with sentry_sdk.push_scope() as scope:
+            scope.set_extra("RATE_LIMIT_EXEMPT_EMAILS_FROM_DB", RATE_LIMIT_EXEMPT_EMAILS_FROM_DB)
+            scope.set_extra("RATE_LIMIT_EXEMPT_EMAILS", RATE_LIMIT_EXEMPT_EMAILS)
+            scope.set_extra("test4_in_exempt_emails_from_db", "test4@example.com" in RATE_LIMIT_EXEMPT_EMAILS_FROM_DB)
+            scope.set_extra("test4_in_exempt_emails_from_env", "test4@example.com" in RATE_LIMIT_EXEMPT_EMAILS)
+            sentry_sdk.capture_message("DEBUG API KEY MESSAGE - check ratelimit exempt emails")
 
     logger.debug(f'{g.app_request_id}: assigned api pool {g.api_pool}')
 
