@@ -7,6 +7,8 @@ from app import db
 
 
 class RateLimitExempt(db.Model):
+    __tablename__ = "ratelimit_exempt"
+
     id = db.Column(db.BigInteger, Sequence('ratelimit_exempt_id_seq', start=1, increment=1), primary_key=True)
     email = db.Column(db.Text, nullable=False, unique=True)
     created = db.Column(db.DateTime, nullable=False, default=datetime.now(timezone.utc).isoformat())
