@@ -41,3 +41,10 @@ def valid_key(key):
         APIKey.active == True,
         or_(APIKey.expires == None, APIKey.expires > datetime.now(timezone.utc).isoformat())
     ).first()
+
+def get_all_valid_keys():
+    q = APIKey.query.filter(
+        APIKey.active == True,
+        or_(APIKey.expires == None, APIKey.expires > datetime.now(timezone.utc).isoformat())
+    )
+    return [item.key for item in q.all()]

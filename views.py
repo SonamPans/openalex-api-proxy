@@ -4,6 +4,7 @@ import json
 import os
 import re
 from urllib.parse import urlparse
+from datetime import datetime, timezone
 
 import requests
 from flask import abort, g, jsonify, make_response
@@ -11,7 +12,7 @@ from flask import request
 from flask_limiter import Limiter
 from werkzeug.http import http_date
 
-from api_key import valid_key
+from api_key import valid_key, get_all_valid_keys
 from rate_limit_exempt_email import get_rate_limit_exempt_emails
 from app import app
 from app import elastic_api_url, formatter_api_url, ngrams_api_url
@@ -27,6 +28,7 @@ HIGH_RATE_LIMIT_API_KEYS = os.environ.get('HIGH_RATE_LIMIT_API_KEYS', '').split(
 RATE_LIMIT_EXEMPT_EMAILS = os.environ.get('TOP_SECRET_UNLIMITED_EMAILS', '').split(';')
 
 RATE_LIMIT_EXEMPT_EMAILS_FROM_DB = get_rate_limit_exempt_emails()
+HIGH_RATE_LIMIT_API_KEYS_FROM_DB = get_all_valid_keys()
 
 
 def abort_json(status_code, msg):
@@ -141,15 +143,6 @@ def before_request():
 
     logger.info(f"url: {request.url}, mailto: {g.mailto}, api_key: {g.api_key}")
 
-    if g.api_key == os.environ.get('DEBUG_API_KEY', ''):
-        # send message to sentry
-        with sentry_sdk.push_scope() as scope:
-            scope.set_extra("RATE_LIMIT_EXEMPT_EMAILS_FROM_DB", RATE_LIMIT_EXEMPT_EMAILS_FROM_DB)
-            scope.set_extra("RATE_LIMIT_EXEMPT_EMAILS", RATE_LIMIT_EXEMPT_EMAILS)
-            scope.set_extra("test4_in_exempt_emails_from_db", "test4@example.com" in RATE_LIMIT_EXEMPT_EMAILS_FROM_DB)
-            scope.set_extra("test4_in_exempt_emails_from_env", "test4@example.com" in RATE_LIMIT_EXEMPT_EMAILS)
-            sentry_sdk.capture_message("DEBUG API KEY MESSAGE - check ratelimit exempt emails")
-
     logger.debug(f'{g.app_request_id}: assigned api pool {g.api_pool}')
 
     if blocked_requester := check_for_blocked_requester(request_ip=remote_address(), request_email=g.mailto):
@@ -198,6 +191,16 @@ def after_request(response):
         response.headers['X-API-Pool'] = g.api_pool
     except AttributeError:
         pass
+
+    if g.api_key == os.environ.get('DEBUG_API_KEY', ''):
+        # send message to sentry
+        with sentry_sdk.push_scope() as scope:
+            scope.set_extra("RATE_LIMIT_EXEMPT_EMAILS_FROM_DB", RATE_LIMIT_EXEMPT_EMAILS_FROM_DB)
+            scope.set_extra("RATE_LIMIT_EXEMPT_EMAILS", RATE_LIMIT_EXEMPT_EMAILS)
+            scope.set_extra("test4_in_exempt_emails_from_db", "test4@example.com" in RATE_LIMIT_EXEMPT_EMAILS_FROM_DB)
+            scope.set_extra("test4_in_exempt_emails_from_env", "test4@example.com" in RATE_LIMIT_EXEMPT_EMAILS)
+            sentry_sdk.capture_message("DEBUG API KEY MESSAGE - check ratelimit exempt emails")
+
 
     logger.debug(f'{g.app_request_id}: finished after_request, returning final response')
 
@@ -356,6 +359,13 @@ def base_endpoint():
         "documentation_url": "https://openalex.org/rest-api",
         "msg": "Don't panic"
     })
+
+@app.route('/refreshdb', methods=["POST"])
+def refreshdb():
+    RATE_LIMIT_EXEMPT_EMAILS_FROM_DB = get_rate_limit_exempt_emails()
+    HIGH_RATE_LIMIT_API_KEYS_FROM_DB = get_all_valid_keys()
+    return jsonify({"msg": "refresh successful", "sent_at": datetime.now(timezone.utc).isoformat()}), 200
+
 
 
 if __name__ == '__main__':
