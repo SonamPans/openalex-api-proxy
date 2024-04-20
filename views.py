@@ -362,6 +362,8 @@ def base_endpoint():
 
 @app.route('/refreshdb', methods=["POST"])
 def refreshdb():
+    global RATE_LIMIT_EXEMPT_EMAILS_FROM_DB
+    global HIGH_RATE_LIMIT_API_KEYS_FROM_DB
     RATE_LIMIT_EXEMPT_EMAILS_FROM_DB = get_rate_limit_exempt_emails()
     HIGH_RATE_LIMIT_API_KEYS_FROM_DB = get_all_valid_keys()
     return jsonify({"msg": "refresh successful", "sent_at": datetime.now(timezone.utc).isoformat()}), 200
