@@ -12,16 +12,21 @@ from flask_limiter import Limiter
 from werkzeug.http import http_date
 
 from api_key import valid_key
+from rate_limit_exempt_email import get_rate_limit_exempt_emails
 from app import app
 from app import elastic_api_url, formatter_api_url, ngrams_api_url
 from app import logger
 from app import memcached
 from blocked_requester import check_for_blocked_requester
 
+from sentry_sdk import capture_message
+
 API_POOL_PUBLIC = 'common'
 API_POOL_POLITE = 'polite'
 HIGH_RATE_LIMIT_API_KEYS = os.environ.get('HIGH_RATE_LIMIT_API_KEYS', '').split(';')
 RATE_LIMIT_EXEMPT_EMAILS = os.environ.get('TOP_SECRET_UNLIMITED_EMAILS', '').split(';')
+
+RATE_LIMIT_EXEMPT_EMAILS_FROM_DB = get_rate_limit_exempt_emails()
 
 
 def abort_json(status_code, msg):
@@ -135,6 +140,10 @@ def before_request():
         g.api_pool = API_POOL_PUBLIC
 
     logger.info(f"url: {request.url}, mailto: {g.mailto}, api_key: {g.api_key}")
+
+    if g.api_key == os.environ.get('DEBUG_API_KEY', ''):
+        # send message to sentry
+        capture_message(f"RATE_LIMIT_EXEMPT_EMAILS_FROM_DB: {RATE_LIMIT_EXEMPT_EMAILS_FROM_DB}")
 
     logger.debug(f'{g.app_request_id}: assigned api pool {g.api_pool}')
 
