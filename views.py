@@ -302,7 +302,12 @@ def forward_request(request_path):
         try:
             logger.debug(f'{g.app_request_id}: getting response from worker')
 
-            worker_response = worker_host.get("session").get(worker_url, params=worker_params, headers=worker_headers, allow_redirects=False)
+            if request.method == 'POST' and request.path and request.path.startswith('/text/'):
+                worker_response = worker_host.get("session").post(worker_url, json=request.json,
+                                                                 headers=worker_headers, allow_redirects=False)
+            else:
+                worker_response = worker_host.get("session").get(worker_url, params=worker_params,
+                                                                 headers=worker_headers, allow_redirects=False)
             response_source = worker_response.url
 
             response_attrs = {
