@@ -295,6 +295,7 @@ def forward_request(request_path):
             logger.debug(f'{g.app_request_id}: getting response from worker')
 
             if request.method == 'POST' and request.path and request.path.startswith('/text/'):
+                logger.info(f'json is {request.json}')
                 worker_headers['Content-Type'] = 'application/json'
                 worker_response = worker_host.get("session").post(worker_url, json=request.json,
                                                                  headers=worker_headers, allow_redirects=False)
