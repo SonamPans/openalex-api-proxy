@@ -159,9 +159,6 @@ def before_request():
 
 @app.after_request
 def after_request(response):
-    logger.debug(f'{g.app_request_id}: starting after_request')
-    logger.debug(f'{g.app_request_id}: setting CORS headers')
-
     # support CORS
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS, PUT, DELETE, PATCH"
@@ -202,9 +199,6 @@ def after_request(response):
             scope.set_extra("test4_in_exempt_emails_from_db", "test4@example.com" in RATE_LIMIT_EXEMPT_EMAILS_FROM_DB)
             scope.set_extra("test4_in_exempt_emails_from_env", "test4@example.com" in RATE_LIMIT_EXEMPT_EMAILS)
             sentry_sdk.capture_message("DEBUG API KEY MESSAGE - check ratelimit exempt emails")
-
-
-    logger.debug(f'{g.app_request_id}: finished after_request, returning final response')
 
     return response
 
