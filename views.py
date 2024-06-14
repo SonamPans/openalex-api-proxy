@@ -15,7 +15,7 @@ from werkzeug.http import http_date
 from api_key import valid_key, get_all_valid_keys
 from rate_limit_exempt_email import get_rate_limit_exempt_emails
 from app import app
-from app import elastic_api_url, formatter_api_url, ngrams_api_url
+from app import elastic_api_url, formatter_api_url, ngrams_api_url, text_api_url
 from app import logger
 from app import memcached
 from blocked_requester import check_for_blocked_requester
@@ -73,9 +73,11 @@ def rate_limit_key():
 
 
 def rate_limit_value():
-    if g.api_key and g.api_key in HIGH_RATE_LIMIT_API_KEYS:
+    if request.path and request.path.startswith('/text/'):
+        return '5/second, 10000/day'
+    elif g.api_key and g.api_key in HIGH_RATE_LIMIT_API_KEYS:
         logger.debug(f'Authorized high rate limit for {g.app_request_id} due to API key.')
-        return '100/second, 2000000/day'  # was '100/second, 1250000/day'. Increased to 2000000/day temporarily 
+        return '100/second, 2000000/day'  # was '100/second, 1250000/day'. Increased to 2000000/day temporarily
     else:
         return '10/second, 500000/day'
 
@@ -212,6 +214,7 @@ limiter = Limiter(app, key_func=remote_address)
 formatter_session = requests.Session()
 elastic_session = requests.Session()
 ngrams_session = requests.Session()
+text_session = requests.Session()
 
 
 def select_worker_host(request_path, request_args):
@@ -233,6 +236,9 @@ def select_worker_host(request_path, request_args):
     if re.match(r"^export/?", request_path):
         return {'url': formatter_api_url, 'session': formatter_session}
 
+    if re.match(r"^text/?", request_path):
+        return {'url': text_api_url, 'session': text_session}
+
     # /works/W2548140242/ngrams or /works/10.1103/physrevlett.77.3865/ngrams
     if re.match(r"^works/[wW]\d+/ngrams/?$", request_path) or re.match(r"^works/10\..*/ngrams/?$", request_path):
         return {'url': ngrams_api_url, 'session': ngrams_session}
@@ -248,7 +254,7 @@ def email_rate_limit_exempt():
     return (g.mailto in RATE_LIMIT_EXEMPT_EMAILS) or (request.path and request.path.endswith('/ngrams'))
 
 
-@app.route('/<path:request_path>', methods=['GET'])
+@app.route('/<path:request_path>', methods=['GET', 'POST'])
 @limiter.limit(limit_value=rate_limit_value, key_func=rate_limit_key)
 def forward_request(request_path):
     logger.debug(f'{g.app_request_id}: started forward_request')

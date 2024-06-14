@@ -50,6 +50,7 @@ app.config['RATELIMIT_IN_MEMORY_FALLBACK'] = '100000/day'
 elastic_api_url = os.getenv('ELASTIC_API_URL')
 formatter_api_url = os.getenv('FORMATTER_API_URL')
 ngrams_api_url = os.getenv('NGRAMS_API_URL')
+text_api_url = os.getenv('TEXT_API_URL')
 
 
 class NullPoolSQLAlchemy(SQLAlchemy):
