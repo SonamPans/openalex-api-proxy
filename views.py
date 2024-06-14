@@ -189,7 +189,7 @@ def after_request(response):
     except AttributeError:
         pass
 
-    if g.api_key == os.environ.get('DEBUG_API_KEY', ''):
+    if hasattr(g, "api_key") and g.api_key == os.environ.get('DEBUG_API_KEY', ''):
         # send message to sentry
         with sentry_sdk.push_scope() as scope:
             scope.set_extra("RATE_LIMIT_EXEMPT_EMAILS_FROM_DB", RATE_LIMIT_EXEMPT_EMAILS_FROM_DB)
