@@ -166,8 +166,6 @@ def after_request(response):
     response.headers["Access-Control-Expose-Headers"] = "Authorization, Cache-Control"
     response.headers["Access-Control-Allow-Credentials"] = "true"
 
-    logger.debug(f'{g.app_request_id}: massaging rate limit headers')
-
     if response.status_code != 429:
         response.headers.pop('Retry-After', None)
         response.headers.pop('X-RateLimit-Limit', None)
