@@ -74,7 +74,7 @@ def rate_limit_key():
 
 def rate_limit_value():
     if request.path and request.path.startswith('/text'):
-        return '5/second, 10000/day'
+        return '1/second, 1000/day'
     elif g.api_key and g.api_key in HIGH_RATE_LIMIT_API_KEYS:
         logger.debug(f'Authorized high rate limit for {g.app_request_id} due to API key.')
         return '100/second, 2000000/day'  # was '100/second, 1250000/day'. Increased to 2000000/day temporarily
