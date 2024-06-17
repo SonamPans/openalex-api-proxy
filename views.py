@@ -73,7 +73,7 @@ def rate_limit_key():
 
 
 def rate_limit_value():
-    if request.path and request.path.startswith('/text/'):
+    if request.path and request.path.startswith('/text'):
         return '5/second, 10000/day'
     elif g.api_key and g.api_key in HIGH_RATE_LIMIT_API_KEYS:
         logger.debug(f'Authorized high rate limit for {g.app_request_id} due to API key.')
@@ -294,9 +294,7 @@ def forward_request(request_path):
         try:
             logger.debug(f'{g.app_request_id}: getting response from worker')
 
-            if request.method == 'POST' and request.path and request.path.startswith('/text/'):
-                logger.info(f'json is {request.json}')
-                worker_headers['Content-Type'] = 'application/json'
+            if request.method == 'POST' and request.path and request.path.startswith('/text'):
                 worker_response = worker_host.get("session").post(worker_url, json=request.json,
                                                                  headers=worker_headers, allow_redirects=False)
             else:
@@ -311,9 +309,6 @@ def forward_request(request_path):
             }
 
             logger.debug(f'{g.app_request_id}: got response from worker')
-
-            #if worker_response.status_code < 500:
-                #memcached.set(cache_key, response_attrs)
 
         except requests.exceptions.RequestException:
             response_attrs = {
